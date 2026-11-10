@@ -3,33 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Лабораторная работа №4</title>
+    <title>Лабораторная работа №4 — MySQL Менеджер</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="/static/js/main.js" defer></script>
 </head>
 <body>
     <div class="app-container">
-
+        <!-- Шапка -->
         <header class="app-header">
             <div class="header-left">
                 <span class="badge">БД: Воейков</span>
                 <span class="db-host">mysql-8.4</span>
             </div>
             <div class="header-title">
-                <h1>DDL / DML Менеджер</h1>
+                <h1>DDL / DML & Объектный Менеджер MySQL</h1>
+            </div>
+            <div class="header-right">
+                <button type="button" class="btn-ghost" id="btn-refresh-tables" title="Обновить список таблиц">
+                    Обновить таблицы
+                </button>
             </div>
         </header>
 
         <main class="app-layout">
+            <!-- Боковая панель: Список таблиц -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Таблицы базы</h2>
+                    <span id="tables-count" class="counter">0</span>
+                </div>
+                <div id="tables-list" class="tables-list">
+                    <div class="empty-hint">Загрузка...</div>
+                </div>
+            </aside>
 
+            <!-- Основная рабочая область -->
             <section class="workspace">
-                <nav class="tabs-nav" aria-label="Тип команд">
-                    <button type="button" class="tab-btn active" data-tab="ddl">DDL</button>
-                    <button type="button" class="tab-btn" data-tab="dml">DML</button>
+                <!-- Вкладки верхнего уровня -->
+                <nav class="tabs-nav" aria-label="Разделы команд">
+                    <button type="button" class="tab-btn active" data-tab="ddl">DDL (Таблицы)</button>
+                    <button type="button" class="tab-btn" data-tab="dml">DML (Данные)</button>
+                    <button type="button" class="tab-btn" data-tab="indexes">Индексы</button>
+                    <button type="button" class="tab-btn" data-tab="triggers">Триггеры</button>
+                    <button type="button" class="tab-btn" data-tab="procedures">Хранимые процедуры</button>
+                    <button type="button" class="tab-btn" data-tab="views-tx">VIEW & Транзакции</button>
                     <button type="button" class="tab-btn" data-tab="raw">SQL Консоль</button>
                 </nav>
 
-                <!-- DDL -->
+                <!-- ВКЛАДКА 1: DDL -->
                 <div id="tab-ddl" class="tab-content active">
                     <div class="command-selector">
                         <label class="radio-label">
@@ -50,7 +71,6 @@
                         </label>
                     </div>
 
-                    <!-- CREATE TABLE -->
                     <form id="form-create-table" class="card-form active">
                         <div class="form-group">
                             <label for="create-table-name">Имя новой таблицы</label>
@@ -67,11 +87,10 @@
                         <button type="submit" class="btn btn-primary">Выполнить CREATE TABLE</button>
                     </form>
 
-                    <!-- ALTER TABLE -->
                     <form id="form-alter-table" class="card-form">
                         <div class="form-group">
                             <label for="alter-table-name">Имя таблицы</label>
-                            <input type="text" id="alter-table-name" placeholder="выберите или введите таблицу" required autocomplete="off">
+                            <input type="text" id="alter-table-name" placeholder="имя таблицы" required autocomplete="off">
                         </div>
                         <div class="form-group">
                             <label for="alter-action-select">Действие</label>
@@ -83,8 +102,6 @@
                                 <option value="RENAME_TABLE">RENAME TABLE (переименовать таблицу)</option>
                             </select>
                         </div>
-
-                        <!-- ALTER -->
                         <div id="alter-field-column-name" class="form-group">
                             <label id="alter-col-label" for="alter-col-input">Имя столбца</label>
                             <input type="text" id="alter-col-input" placeholder="имя столбца" autocomplete="off">
@@ -101,32 +118,29 @@
                             <label for="alter-new-table-input">Новое имя таблицы</label>
                             <input type="text" id="alter-new-table-input" placeholder="новое имя таблицы" autocomplete="off">
                         </div>
-
                         <button type="submit" class="btn btn-primary">Выполнить ALTER TABLE</button>
                     </form>
 
-                    <!-- Форма TRUNCATE TABLE -->
                     <form id="form-truncate-table" class="card-form">
                         <div class="form-group">
                             <label for="truncate-table-name">Имя таблицы для очистки</label>
                             <input type="text" id="truncate-table-name" placeholder="имя таблицы" required autocomplete="off">
                         </div>
-                        <p class="form-warning">Внимание: команда TRUNCATE полностью очищает все записи таблицы без возможности отката.</p>
+                        <p class="form-warning">Внимание: TRUNCATE удаляет все записи без возможности отката.</p>
                         <button type="submit" class="btn btn-danger">Выполнить TRUNCATE TABLE</button>
                     </form>
 
-                    <!-- Форма DROP TABLE -->
                     <form id="form-drop-table" class="card-form">
                         <div class="form-group">
                             <label for="drop-table-name">Имя таблицы для удаления</label>
                             <input type="text" id="drop-table-name" placeholder="имя таблицы" required autocomplete="off">
                         </div>
-                        <p class="form-warning">Внимание: таблица и вся её структура будут безвозвратно удалены.</p>
+                        <p class="form-warning">Внимание: таблица будет безвозвратно удалена.</p>
                         <button type="submit" class="btn btn-danger">Выполнить DROP TABLE</button>
                     </form>
                 </div>
 
-                <!-- DML -->
+                <!-- ВКЛАДКА 2: DML -->
                 <div id="tab-dml" class="tab-content">
                     <div class="command-selector">
                         <label class="radio-label">
@@ -147,7 +161,6 @@
                         </label>
                     </div>
 
-                    <!-- SELECT -->
                     <form id="form-dml-select" class="card-form active">
                         <div class="form-row">
                             <div class="form-group flex-2">
@@ -155,39 +168,37 @@
                                 <input type="text" id="select-table-name" placeholder="имя таблицы" required autocomplete="off">
                             </div>
                             <div class="form-group flex-1">
-                                <label for="select-limit">Лимит (строк)</label>
+                                <label for="select-limit">Лимит строк</label>
                                 <input type="number" id="select-limit" value="50" min="1" max="1000">
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="select-columns">Колонки</label>
-                            <input type="text" id="select-columns" value="*" placeholder="* или id, name, price">
+                            <input type="text" id="select-columns" value="*" placeholder="* или id, name">
                         </div>
                         <div class="form-group">
                             <label for="select-where">Условие WHERE (опционально)</label>
-                            <input type="text" id="select-where" placeholder="например: id > 5 AND status = 'active'">
+                            <input type="text" id="select-where" placeholder="например: age >= 18">
                         </div>
                         <button type="submit" class="btn btn-primary">Выполнить SELECT</button>
                     </form>
 
-                    <!-- INSERT -->
                     <form id="form-dml-insert" class="card-form">
                         <div class="form-group">
                             <label for="insert-table-name">Имя таблицы</label>
                             <input type="text" id="insert-table-name" placeholder="имя таблицы" required autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="insert-columns">Колонки (опционально, оставьте пустым для всех колонок)</label>
+                            <label for="insert-columns">Колонки (опционально)</label>
                             <input type="text" id="insert-columns" placeholder="например: first_name, email, age">
                         </div>
                         <div class="form-group">
                             <label for="insert-values">Значения (VALUES)</label>
-                            <input type="text" id="insert-values" placeholder="'Алексей', 'alex@mail.ru', 24" required autocomplete="off">
+                            <input type="text" id="insert-values" placeholder="'Иван', 'ivan@mail.ru', 25" required autocomplete="off">
                         </div>
                         <button type="submit" class="btn btn-primary">Выполнить INSERT</button>
                     </form>
 
-                    <!-- UPDATE -->
                     <form id="form-dml-update" class="card-form">
                         <div class="form-group">
                             <label for="update-table-name">Имя таблицы</label>
@@ -195,16 +206,15 @@
                         </div>
                         <div class="form-group">
                             <label for="update-set">Выражение SET</label>
-                            <input type="text" id="update-set" placeholder="например: age = age + 1, status = 'verified'" required autocomplete="off">
+                            <input type="text" id="update-set" placeholder="например: age = age + 1, status = 'active'" required autocomplete="off">
                         </div>
                         <div class="form-group">
                             <label for="update-where">Условие WHERE</label>
-                            <input type="text" id="update-where" placeholder="например: id = 10 (оставьте пустым для обновления всех строк)">
+                            <input type="text" id="update-where" placeholder="например: id = 1">
                         </div>
                         <button type="submit" class="btn btn-primary">Выполнить UPDATE</button>
                     </form>
 
-                    <!-- DELETE -->
                     <form id="form-dml-delete" class="card-form">
                         <div class="form-group">
                             <label for="delete-table-name">Имя таблицы</label>
@@ -214,17 +224,254 @@
                             <label for="delete-where">Условие WHERE</label>
                             <input type="text" id="delete-where" placeholder="например: id = 15">
                         </div>
-                        <p class="form-warning">Внимание: если не указать WHERE, будут удалены ВСЕ строки таблицы.</p>
+                        <p class="form-warning">Внимание: пустой WHERE приведет к удалению ВСЕХ строк.</p>
                         <button type="submit" class="btn btn-danger">Выполнить DELETE</button>
                     </form>
                 </div>
 
-                <!-- консоль -->
+                <!-- ВКЛАДКА 3: ИНДЕКСЫ -->
+                <div id="tab-indexes" class="tab-content">
+                    <div class="command-selector">
+                        <label class="radio-label">
+                            <input type="radio" name="index-subcommand" value="create" checked>
+                            <span>CREATE INDEX</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="index-subcommand" value="drop">
+                            <span>DROP INDEX</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="index-subcommand" value="show">
+                            <span>SHOW INDEX</span>
+                        </label>
+                    </div>
+
+                    <form id="form-create-index" class="card-form active">
+                        <div class="form-group">
+                            <label for="idx-table-name">Имя таблицы</label>
+                            <input type="text" id="idx-table-name" placeholder="имя таблицы" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="idx-name">Имя индекса</label>
+                            <input type="text" id="idx-name" placeholder="например: idx_client_email" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="idx-columns">Столбцы индекса (через запятую)</label>
+                            <input type="text" id="idx-columns" placeholder="например: email или last_name, first_name" required autocomplete="off">
+                        </div>
+                        <div class="form-group-checkbox">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="idx-unique">
+                                <span>Уникальный индекс (UNIQUE INDEX)</span>
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Создать индекс</button>
+                    </form>
+
+                    <form id="form-drop-index" class="card-form">
+                        <div class="form-group">
+                            <label for="drop-idx-table">Имя таблицы</label>
+                            <input type="text" id="drop-idx-table" placeholder="имя таблицы" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="drop-idx-name">Имя индекса для удаления</label>
+                            <input type="text" id="drop-idx-name" placeholder="например: idx_client_email" required autocomplete="off">
+                        </div>
+                        <button type="submit" class="btn btn-danger">Удалить индекс</button>
+                    </form>
+
+                    <form id="form-show-index" class="card-form">
+                        <div class="form-group">
+                            <label for="show-idx-table">Имя таблицы для просмотра индексов</label>
+                            <input type="text" id="show-idx-table" placeholder="имя таблицы" required autocomplete="off">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Показать индексы</button>
+                    </form>
+                </div>
+
+                <!-- ВКЛАДКА 4: ТРИГГЕРЫ -->
+                <div id="tab-triggers" class="tab-content">
+                    <div class="command-selector">
+                        <label class="radio-label">
+                            <input type="radio" name="trg-subcommand" value="create" checked>
+                            <span>CREATE TRIGGER</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="trg-subcommand" value="drop">
+                            <span>DROP TRIGGER</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="trg-subcommand" value="show">
+                            <span>SHOW TRIGGERS</span>
+                        </label>
+                    </div>
+
+                    <form id="form-create-trigger" class="card-form active">
+                        <div class="form-group">
+                            <label for="trg-name">Имя триггера</label>
+                            <input type="text" id="trg-name" placeholder="например: before_client_insert" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="trg-table">Имя таблицы</label>
+                            <input type="text" id="trg-table" placeholder="имя таблицы" required autocomplete="off">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="trg-timing">Момент срабатывания</label>
+                                <select id="trg-timing">
+                                    <option value="BEFORE">BEFORE (до операции)</option>
+                                    <option value="AFTER">AFTER (после операции)</option>
+                                </select>
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="trg-event">Событие</label>
+                                <select id="trg-event">
+                                    <option value="INSERT">INSERT</option>
+                                    <option value="UPDATE">UPDATE</option>
+                                    <option value="DELETE">DELETE</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="trg-statement">Тело триггера (оператор или BEGIN ... END)</label>
+                            <textarea id="trg-statement" rows="4" placeholder="SET NEW.email = LOWER(NEW.email);" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Создать триггер</button>
+                    </form>
+
+                    <form id="form-drop-trigger" class="card-form">
+                        <div class="form-group">
+                            <label for="drop-trg-name">Имя триггера для удаления</label>
+                            <input type="text" id="drop-trg-name" placeholder="имя триггера" required autocomplete="off">
+                        </div>
+                        <button type="submit" class="btn btn-danger">Удалить триггер</button>
+                    </form>
+
+                    <form id="form-show-triggers" class="card-form">
+                        <p class="form-hint">Отобразить все активные триггеры текущей базы данных.</p>
+                        <button type="submit" class="btn btn-primary">Показать все триггеры</button>
+                    </form>
+                </div>
+
+                <!-- ВКЛАДКА 5: ХРАНИМЫЕ ПРОЦЕДУРЫ -->
+                <div id="tab-procedures" class="tab-content">
+                    <div class="command-selector">
+                        <label class="radio-label">
+                            <input type="radio" name="proc-subcommand" value="create" checked>
+                            <span>CREATE PROCEDURE</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="proc-subcommand" value="call">
+                            <span>CALL PROCEDURE</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="proc-subcommand" value="drop">
+                            <span>DROP PROCEDURE</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="proc-subcommand" value="show">
+                            <span>SHOW PROCEDURES</span>
+                        </label>
+                    </div>
+
+                    <form id="form-create-proc" class="card-form active">
+                        <div class="form-group">
+                            <label for="proc-name">Имя процедуры</label>
+                            <input type="text" id="proc-name" placeholder="например: GetClientsByAge" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="proc-params">Параметры (например: IN min_age INT)</label>
+                            <input type="text" id="proc-params" placeholder="IN min_age INT" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="proc-body">Тело процедуры (BEGIN ... END)</label>
+                            <textarea id="proc-body" rows="5" placeholder="BEGIN&#10;    SELECT * FROM clients WHERE age >= min_age;&#10;END" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Создать процедуру</button>
+                    </form>
+
+                    <form id="form-call-proc" class="card-form">
+                        <div class="form-group">
+                            <label for="call-proc-name">Имя процедуры</label>
+                            <input type="text" id="call-proc-name" placeholder="например: GetClientsByAge" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="call-proc-args">Аргументы через запятую (если есть)</label>
+                            <input type="text" id="call-proc-args" placeholder="например: 18">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Вызвать процедуру (CALL)</button>
+                    </form>
+
+                    <form id="form-drop-proc" class="card-form">
+                        <div class="form-group">
+                            <label for="drop-proc-name">Имя процедуры для удаления</label>
+                            <input type="text" id="drop-proc-name" placeholder="имя процедуры" required autocomplete="off">
+                        </div>
+                        <button type="submit" class="btn btn-danger">Удалить процедуру</button>
+                    </form>
+
+                    <form id="form-show-procs" class="card-form">
+                        <p class="form-hint">Отобразить список хранимых процедур в текущей базе данных.</p>
+                        <button type="submit" class="btn btn-primary">Показать хранимые процедуры</button>
+                    </form>
+                </div>
+
+                <!-- ВКЛАДКА 6: ПРЕДСТАВЛЕНИЯ И ТРАНЗАКЦИИ -->
+                <div id="tab-views-tx" class="tab-content">
+                    <div class="section-title">Представления (VIEW)</div>
+                    <div class="command-selector">
+                        <label class="radio-label">
+                            <input type="radio" name="view-subcommand" value="create" checked>
+                            <span>CREATE VIEW</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="view-subcommand" value="drop">
+                            <span>DROP VIEW</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="view-subcommand" value="show">
+                            <span>SHOW VIEWS</span>
+                        </label>
+                    </div>
+
+                    <form id="form-create-view" class="card-form active">
+                        <div class="form-group">
+                            <label for="view-name">Имя представления</label>
+                            <input type="text" id="view-name" placeholder="например: adult_clients" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="view-query">Запрос SELECT</label>
+                            <textarea id="view-query" rows="3" placeholder="SELECT id, first_name, email FROM clients WHERE age >= 18" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Создать представление</button>
+                    </form>
+
+                    <form id="form-drop-view" class="card-form">
+                        <div class="form-group">
+                            <label for="drop-view-name">Имя представления для удаления</label>
+                            <input type="text" id="drop-view-name" placeholder="имя представления" required autocomplete="off">
+                        </div>
+                        <button type="submit" class="btn btn-danger">Удалить представление</button>
+                    </form>
+
+                    <form id="form-show-views" class="card-form">
+                        <button type="submit" class="btn btn-primary">Показать все VIEW</button>
+                    </form>
+
+                    <div class="section-title" style="margin-top: 24px;">Транзакции (TCL)</div>
+                    <div class="tx-actions">
+                        <button type="button" class="btn btn-ghost" id="btn-tx-start">START TRANSACTION</button>
+                        <button type="button" class="btn btn-primary" id="btn-tx-commit">COMMIT</button>
+                        <button type="button" class="btn btn-danger" id="btn-tx-rollback">ROLLBACK</button>
+                    </div>
+                </div>
+
+                <!-- ВКЛАДКА 7: SQL КОНСОЛЬ -->
                 <div id="tab-raw" class="tab-content">
                     <form id="form-raw-sql" class="card-form active">
                         <div class="form-group">
                             <label for="raw-sql-input">Произвольный SQL-запрос</label>
-                            <textarea id="raw-sql-input" rows="5" placeholder="SELECT * FROM clients WHERE age >= 18;"></textarea>
+                            <textarea id="raw-sql-input" rows="6" placeholder="SELECT * FROM clients;"></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Выполнить запрос</button>
                     </form>
@@ -234,20 +481,21 @@
                 <section class="results-panel" id="results-panel">
                     <div class="results-header">
                         <span class="results-title">Результат выполнения</span>
+                        <div class="results-meta">
+                            <span class="meta-tag" id="meta-status">—</span>
+                            <span class="meta-tag" id="meta-time">—</span>
+                        </div>
                     </div>
 
-                    <!-- блок SQL кода запроса -->
                     <div class="query-preview" id="query-preview" style="display: none;">
                         <span class="query-label">SQL</span>
                         <code id="query-code"></code>
                     </div>
 
-                    <!-- статус -->
                     <div id="result-message" class="result-message">
                         Ожидание выполнения команды...
                     </div>
 
-                    <!-- таблица данных для селекта / описания -->
                     <div id="table-container" class="table-container" style="display: none;">
                         <table id="result-table">
                             <thead id="result-thead"></thead>
