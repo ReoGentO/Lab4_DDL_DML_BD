@@ -9,6 +9,7 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from colorama import just_fix_windows_console
 
 from models import (
     DDLPayload,
@@ -21,16 +22,11 @@ from models import (
     clean_identifier,
 )
 
-if sys.platform == "win32":
-    try:
-        import colorama
-        colorama.init()
-    except ImportError:
-        pass
+just_fix_windows_console()
 
 DB_CONFIG = {
     "database": "Воейков",
-    "host": "mysql-8.4",
+    "host": None,
     "user": "root",
     "password": "",
     "charset": "utf8mb4",
@@ -432,4 +428,7 @@ async def raw_sql_endpoint(payload: RawSQLPayload):
 
 
 if __name__ == "__main__":
+    from colorama import Fore
+    db_host = str(input(Fore.GREEN + "Введите название хоста или его айпи:" + Fore.WHITE + " "))
+    DB_CONFIG['host'] = db_host
     uvicorn.run(app, host="127.0.0.1", port=8000)
