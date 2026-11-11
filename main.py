@@ -9,7 +9,7 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from colorama import just_fix_windows_console
+from colorama import just_fix_windows_console, Fore
 
 from models import (
     DDLPayload,
@@ -25,10 +25,10 @@ from models import (
 just_fix_windows_console()
 
 DB_CONFIG = {
-    "database": "Воейков",
+    "database": None,
     "host": None,
-    "user": "root",
-    "password": "",
+    "user": None,
+    "password": None,
     "charset": "utf8mb4",
     "collation": "utf8mb4_unicode_ci",
 }
@@ -428,13 +428,22 @@ async def raw_sql_endpoint(payload: RawSQLPayload):
 
 
 if __name__ == "__main__":
-    from colorama import Fore
-    db_host = None
+    db_host, db_user, db_pass, db_name = None
     try:
         db_host = str(input(Fore.GREEN + "Введите название хоста или его айпи:" + Fore.WHITE + " "))
+        db_user = str(input(Fore.GREEN + "Введите имя пользователя:" + Fore.WHITE + " "))
+        db_pass = str(input(Fore.GREEN + "Введите пароль или оставьте пустым:" + Fore.WHITE + " "))
+        db_name = str(input(Fore.GREEN + "Введите имя базы данных:" + Fore.WHITE + " "))
     except KeyboardInterrupt:
         print(Fore.RED + "\nПока :(" + Fore.RESET)
         time.sleep(1)
     if db_host:
         DB_CONFIG['host'] = db_host
-        uvicorn.run(app, host="127.0.0.1", port=8000)
+        DB_CONFIG['user'] = db_user
+        DB_CONFIG['password'] = db_pass
+        DB_CONFIG['database'] = db_name
+        try:
+            uvicorn.run(app, host="127.0.0.1", port=8000)
+        except KeyboardInterrupt:
+            print(Fore.RED + "\nПока :(" + Fore.RESET)
+            time.sleep(1)
