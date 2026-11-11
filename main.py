@@ -429,6 +429,12 @@ async def raw_sql_endpoint(payload: RawSQLPayload):
 
 if __name__ == "__main__":
     from colorama import Fore
-    db_host = str(input(Fore.GREEN + "Введите название хоста или его айпи:" + Fore.WHITE + " "))
-    DB_CONFIG['host'] = db_host
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    db_host = None
+    try:
+        db_host = str(input(Fore.GREEN + "Введите название хоста или его айпи:" + Fore.WHITE + " "))
+    except KeyboardInterrupt:
+        print(Fore.RED + "\nПока :(" + Fore.RESET)
+        time.sleep(1)
+    if db_host:
+        DB_CONFIG['host'] = db_host
+        uvicorn.run(app, host="127.0.0.1", port=8000)
