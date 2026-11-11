@@ -46,7 +46,7 @@
                     <button type="button" class="tab-btn" data-tab="indexes">Индексы</button>
                     <button type="button" class="tab-btn" data-tab="triggers">Триггеры</button>
                     <button type="button" class="tab-btn" data-tab="procedures">Хранимые процедуры</button>
-                    <button type="button" class="tab-btn" data-tab="views-tx">VIEW & Транзакции</button>
+                    <button type="button" class="tab-btn" data-tab="views">VIEW</button>
                     <button type="button" class="tab-btn" data-tab="raw">SQL Консоль</button>
                 </nav>
 
@@ -416,8 +416,8 @@
                     </form>
                 </div>
 
-                <!-- ВКЛАДКА 6: ПРЕДСТАВЛЕНИЯ И ТРАНЗАКЦИИ -->
-                <div id="tab-views-tx" class="tab-content">
+                <!-- ВКЛАДКА 6: ПРЕДСТАВЛЕНИЯ -->
+                <div id="tab-views" class="tab-content">
                     <div class="section-title">Представления (VIEW)</div>
                     <div class="command-selector">
                         <label class="radio-label">
@@ -457,13 +457,6 @@
                     <form id="form-show-views" class="card-form">
                         <button type="submit" class="btn btn-primary">Показать все VIEW</button>
                     </form>
-
-                    <div class="section-title" style="margin-top: 24px;">Транзакции (TCL)</div>
-                    <div class="tx-actions">
-                        <button type="button" class="btn btn-ghost" id="btn-tx-start">START TRANSACTION</button>
-                        <button type="button" class="btn btn-primary" id="btn-tx-commit">COMMIT</button>
-                        <button type="button" class="btn btn-danger" id="btn-tx-rollback">ROLLBACK</button>
-                    </div>
                 </div>
 
                 <!-- ВКЛАДКА 7: SQL КОНСОЛЬ -->

@@ -110,7 +110,7 @@ def get_resource_path(relative_path: str) -> str:
     return str(os.path.join(os.path.abspath("."), relative_path))
 
 
-app = FastAPI(title="Лабораторная работа 4: DDL/DML & MySQL Management")
+app = FastAPI(title="Lab5")
 app.mount("/static", StaticFiles(directory=get_resource_path("static")), name="static")
 templates = Jinja2Templates(directory=get_resource_path("templates"))
 

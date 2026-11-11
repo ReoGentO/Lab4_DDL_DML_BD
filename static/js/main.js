@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initRadioSelectors();
     initAlterFields();
     initForms();
-    initTransactions();
     loadTables();
 
     document.getElementById('btn-refresh-tables').addEventListener('click', loadTables);
@@ -119,19 +118,6 @@ function initAlterFields() {
 
     select.addEventListener('change', updateFields);
     updateFields();
-}
-
-// Транзакции (TCL)
-function initTransactions() {
-    document.getElementById('btn-tx-start').addEventListener('click', () => {
-        sendRequest('/raw-sql', { query: 'START TRANSACTION;' });
-    });
-    document.getElementById('btn-tx-commit').addEventListener('click', () => {
-        sendRequest('/raw-sql', { query: 'COMMIT;' });
-    });
-    document.getElementById('btn-tx-rollback').addEventListener('click', () => {
-        sendRequest('/raw-sql', { query: 'ROLLBACK;' });
-    });
 }
 
 // Загрузка таблиц
