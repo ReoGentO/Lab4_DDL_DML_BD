@@ -428,7 +428,7 @@ async def raw_sql_endpoint(payload: RawSQLPayload):
 
 
 if __name__ == "__main__":
-    db_host, db_user, db_pass, db_name = None
+    db_host, db_user, db_pass, db_name = None, None, None, None
     try:
         db_host = str(input(Fore.GREEN + "Введите название хоста или его айпи:" + Fore.WHITE + " "))
         db_user = str(input(Fore.GREEN + "Введите имя пользователя:" + Fore.WHITE + " "))
@@ -442,8 +442,4 @@ if __name__ == "__main__":
         DB_CONFIG['user'] = db_user
         DB_CONFIG['password'] = db_pass
         DB_CONFIG['database'] = db_name
-        try:
-            uvicorn.run(app, host="127.0.0.1", port=8000)
-        except KeyboardInterrupt:
-            print(Fore.RED + "\nПока :(" + Fore.RESET)
-            time.sleep(1)
+        uvicorn.run(app, host="127.0.0.1", port=8000)
