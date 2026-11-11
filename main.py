@@ -437,7 +437,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print(Fore.RED + "\nПока :(" + Fore.RESET)
         time.sleep(1)
-    if db_host and db_user and db_pass and db_name:
+    if db_host and db_user and db_name:
         DB_CONFIG['host'] = db_host
         DB_CONFIG['user'] = db_user
         DB_CONFIG['password'] = db_pass
