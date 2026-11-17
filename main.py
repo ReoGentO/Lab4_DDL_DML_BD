@@ -2,14 +2,20 @@ import os
 import re
 import sys
 import time
+import multiprocessing
+import webbrowser
 from typing import Any, Dict, List
 
 import mysql.connector
+import mysql.connector.plugins.caching_sha2_password
+import mysql.connector.plugins.mysql_native_password
+import mysql.connector.locales.eng.client_error
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from colorama import just_fix_windows_console, Fore
+
 
 from models import (
     DDLPayload,
@@ -31,6 +37,7 @@ DB_CONFIG = {
     "password": None,
     "charset": "utf8mb4",
     "collation": "utf8mb4_unicode_ci",
+    "use_pure": True,
 }
 
 
@@ -428,18 +435,45 @@ async def raw_sql_endpoint(payload: RawSQLPayload):
 
 
 if __name__ == "__main__":
-    db_host, db_user, db_pass, db_name = None, None, None, None
+    # Обязательно для PyInstaller на Windows
+    multiprocessing.freeze_support()
+    DEFAULT_HOST = "127.0.0.1"
+    DEFAULT_USER = "root"
+
     try:
-        db_host = str(input(Fore.GREEN + "Введите название хоста или его айпи:" + Fore.WHITE + " "))
-        db_user = str(input(Fore.GREEN + "Введите имя пользователя:" + Fore.WHITE + " "))
-        db_pass = str(input(Fore.GREEN + "Введите пароль или оставьте пустым:" + Fore.WHITE + " "))
-        db_name = str(input(Fore.GREEN + "Введите имя базы данных:" + Fore.WHITE + " "))
-    except KeyboardInterrupt:
-        print(Fore.RED + "\nПока :(" + Fore.RESET)
-        time.sleep(1)
-    if db_host and db_user and db_name:
-        DB_CONFIG['host'] = db_host
-        DB_CONFIG['user'] = db_user
-        DB_CONFIG['password'] = db_pass
-        DB_CONFIG['database'] = db_name
+        host_input = input(Fore.GREEN + f"Введите хост БД [{DEFAULT_HOST}]: " + Fore.WHITE).strip()
+        db_host = host_input if host_input else DEFAULT_HOST
+
+        user_input = input(Fore.GREEN + f"Введите пользователя [{DEFAULT_USER}]: " + Fore.WHITE).strip()
+        db_user = user_input if user_input else DEFAULT_USER
+
+        db_pass = input(Fore.GREEN + "Введите пароль (или оставьте пустым): " + Fore.WHITE).strip()
+        db_name = input(Fore.GREEN + "Введите имя базы данных: " + Fore.WHITE).strip()
+        while not db_name:
+            print(Fore.RED + "Имя базы данных не может быть пустым!" + Fore.RESET)
+            db_name = input(Fore.GREEN + "Введите имя базы данных: " + Fore.WHITE).strip()
+    except (KeyboardInterrupt, EOFError):
+        print(Fore.RED + "\nВыход из программы..." + Fore.RESET)
+        sys.exit(0)
+    
+    DB_CONFIG['host'] = db_host
+    DB_CONFIG['user'] = db_user
+    DB_CONFIG['password'] = db_pass
+    DB_CONFIG['database'] = db_name
+
+    try:
+        test_conn = get_db()
+        test_conn.close()
+        print(Fore.GREEN + "Подключение к MySQL успешно установлено" + Fore.RESET)
+    except Exception as e:
+        print(Fore.RED + f"Ошибка подключения к базе данных: {e}" + Fore.RESET)
+        input(Fore.YELLOW + "\nНажмите Enter для выхода..." + Fore.RESET)
+        sys.exit(1)
+    
+    print(Fore.GREEN + "\nЗапуск веб-сервера на http://127.0.0.1:8000" + Fore.RESET)
+    webbrowser.open("http://127.0.0.1:8000")
+
+    try:
         uvicorn.run(app, host="127.0.0.1", port=8000)
+    except KeyboardInterrupt:
+        print(Fore.RED + "\nСервер остановлен." + Fore.RESET)
