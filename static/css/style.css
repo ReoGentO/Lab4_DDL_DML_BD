@@ -62,16 +62,6 @@ body {
     gap: 10px;
 }
 
-.badge {
-    background-color: var(--bg-subtle);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    font-size: 12px;
-    font-weight: 500;
-    padding: 3px 8px;
-    border-radius: var(--radius-sm);
-}
-
 .db-host {
     color: var(--text-dim);
     font-family: var(--font-mono);
