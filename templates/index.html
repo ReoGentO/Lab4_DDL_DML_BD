@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Лабораторная работа №5</title>
+    <title>Лабораторная работа №5 — MySQL Менеджер</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="/static/js/main.js" defer></script>
 </head>
@@ -12,44 +12,86 @@
         <!-- Шапка -->
         <header class="app-header">
             <div class="header-left">
-                <span class="db-host">mysql-8.4</span>
-            </div>
-            <div class="header-title">
-                <h1>MySQL</h1>
+                <span class="db-brand">🗄️ MySQL Менеджер</span>
+                <span class="db-host" id="header-host">127.0.0.1</span>
+                <div class="active-db-pill" id="header-active-db-badge" title="Активная база данных">
+                    <span class="pill-dot"></span>
+                    <span class="pill-label">БД:</span>
+                    <strong id="header-active-db-name">{{ active_database or 'не выбрана' }}</strong>
+                </div>
             </div>
             <div class="header-right">
-                <button type="button" class="btn-ghost" id="btn-refresh-tables" title="Обновить список таблиц">
-                    Обновить таблицы
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-open-create-db-modal" title="Создать новую базу данных">
+                    + Создать БД
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh-all" title="Обновить дерево объектов">
+                    🔄 Обновить
                 </button>
             </div>
         </header>
 
         <main class="app-layout">
-            <!-- Боковая панель: Список таблиц -->
+            <!-- Боковая панель: phpMyAdmin-стиль дерево БД и объектов -->
             <aside class="sidebar">
                 <div class="sidebar-header">
-                    <h2>Таблицы базы</h2>
-                    <span id="tables-count" class="counter">0</span>
+                    <div class="sidebar-title-row">
+                        <h2>Базы данных</h2>
+                        <span id="db-count" class="counter">0</span>
+                    </div>
+                    <div class="sidebar-actions">
+                        <button type="button" class="icon-btn" id="btn-sidebar-add-db" title="Создать базу данных">+</button>
+                        <button type="button" class="icon-btn" id="btn-sidebar-refresh" title="Обновить список">🔄</button>
+                    </div>
                 </div>
-                <div id="tables-list" class="tables-list">
-                    <div class="empty-hint">Загрузка...</div>
+
+                <div class="sidebar-filter-box">
+                    <input type="text" id="tree-search-input" placeholder="Фильтр объектов..." autocomplete="off">
+                </div>
+
+                <!-- Дерево баз данных и их объектов -->
+                <div id="database-tree" class="db-tree">
+                    <div class="tree-loading">Загрузка баз данных...</div>
                 </div>
             </aside>
 
             <!-- Основная рабочая область -->
             <section class="workspace">
+                <!-- Контекстная строка текущего объекта -->
+                <div class="context-bar">
+                    <div class="context-item">
+                        <span class="context-label">База данных:</span>
+                        <select id="context-db-select" class="context-select" title="Переключить базу данных">
+                            <option value="">(Загрузка...)</option>
+                        </select>
+                    </div>
+                    <div class="context-separator">/</div>
+                    <div class="context-item">
+                        <span class="context-label">Выбранный объект:</span>
+                        <span id="context-active-object" class="context-object-name">не выбран</span>
+                    </div>
+                    <div class="context-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-context-browse" style="display: none;">
+                            👁️ Просмотр данных
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-context-schema" style="display: none;">
+                            📐 Структура
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Вкладки верхнего уровня -->
                 <nav class="tabs-nav" aria-label="Разделы команд">
-                    <button type="button" class="tab-btn active" data-tab="ddl">DDL (Таблицы)</button>
-                    <button type="button" class="tab-btn" data-tab="dml">DML (Данные)</button>
+                    <button type="button" class="tab-btn active" data-tab="ddl">Таблицы (DDL)</button>
+                    <button type="button" class="tab-btn" data-tab="dml">Данные (DML)</button>
                     <button type="button" class="tab-btn" data-tab="indexes">Индексы</button>
                     <button type="button" class="tab-btn" data-tab="triggers">Триггеры</button>
                     <button type="button" class="tab-btn" data-tab="procedures">Хранимые процедуры</button>
-                    <button type="button" class="tab-btn" data-tab="views">VIEW</button>
+                    <button type="button" class="tab-btn" data-tab="views">Представления (VIEW)</button>
+                    <button type="button" class="tab-btn" data-tab="databases">Базы данных</button>
                     <button type="button" class="tab-btn" data-tab="raw">SQL Консоль</button>
                 </nav>
 
-                <!-- ВКЛАДКА 1: DDL -->
+                <!-- ВКЛАДКА 1: DDL (Таблицы) -->
                 <div id="tab-ddl" class="tab-content active">
                     <div class="command-selector">
                         <label class="radio-label">
@@ -139,7 +181,7 @@
                     </form>
                 </div>
 
-                <!-- ВКЛАДКА 2: DML -->
+                <!-- ВКЛАДКА 2: DML (Данные) -->
                 <div id="tab-dml" class="tab-content">
                     <div class="command-selector">
                         <label class="radio-label">
@@ -161,23 +203,21 @@
                     </div>
 
                     <form id="form-dml-select" class="card-form active">
-                        <div class="form-row">
-                            <div class="form-group flex-2">
-                                <label for="select-table-name">Имя таблицы</label>
-                                <input type="text" id="select-table-name" placeholder="имя таблицы" required autocomplete="off">
-                            </div>
-                            <div class="form-group flex-1">
-                                <label for="select-limit">Лимит строк</label>
-                                <input type="number" id="select-limit" value="50" min="1" max="1000">
-                            </div>
+                        <div class="form-group">
+                            <label for="select-table-name">Имя таблицы</label>
+                            <input type="text" id="select-table-name" placeholder="имя таблицы" required autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="select-columns">Колонки</label>
-                            <input type="text" id="select-columns" value="*" placeholder="* или id, name">
+                            <label for="select-columns">Колонки (через запятую или *)</label>
+                            <input type="text" id="select-columns" value="*" placeholder="*">
                         </div>
                         <div class="form-group">
-                            <label for="select-where">Условие WHERE (опционально)</label>
-                            <input type="text" id="select-where" placeholder="например: age >= 18">
+                            <label for="select-where">Условие WHERE (без слова WHERE, опционально)</label>
+                            <input type="text" id="select-where" placeholder="например: age >= 18 AND status = 'active'">
+                        </div>
+                        <div class="form-group">
+                            <label for="select-limit">Ограничение строк (LIMIT)</label>
+                            <input type="number" id="select-limit" value="100" min="1" max="1000">
                         </div>
                         <button type="submit" class="btn btn-primary">Выполнить SELECT</button>
                     </form>
@@ -188,12 +228,12 @@
                             <input type="text" id="insert-table-name" placeholder="имя таблицы" required autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="insert-columns">Колонки (опционально)</label>
-                            <input type="text" id="insert-columns" placeholder="например: first_name, email, age">
+                            <label for="insert-columns">Колонки (через запятую или оставьте пустым)</label>
+                            <input type="text" id="insert-columns" placeholder="first_name, email, age">
                         </div>
                         <div class="form-group">
-                            <label for="insert-values">Значения (VALUES)</label>
-                            <input type="text" id="insert-values" placeholder="'Иван', 'ivan@mail.ru', 25" required autocomplete="off">
+                            <label for="insert-values">Значения (через запятую, строки в кавычках)</label>
+                            <input type="text" id="insert-values" placeholder="'Иван', 'ivan@example.com', 25" required>
                         </div>
                         <button type="submit" class="btn btn-primary">Выполнить INSERT</button>
                     </form>
@@ -205,10 +245,10 @@
                         </div>
                         <div class="form-group">
                             <label for="update-set">Выражение SET</label>
-                            <input type="text" id="update-set" placeholder="например: age = age + 1, status = 'active'" required autocomplete="off">
+                            <input type="text" id="update-set" placeholder="например: age = 26, status = 'active'" required>
                         </div>
                         <div class="form-group">
-                            <label for="update-where">Условие WHERE</label>
+                            <label for="update-where">Условие WHERE (без слова WHERE)</label>
                             <input type="text" id="update-where" placeholder="например: id = 1">
                         </div>
                         <button type="submit" class="btn btn-primary">Выполнить UPDATE</button>
@@ -220,10 +260,10 @@
                             <input type="text" id="delete-table-name" placeholder="имя таблицы" required autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="delete-where">Условие WHERE</label>
-                            <input type="text" id="delete-where" placeholder="например: id = 15">
+                            <label for="delete-where">Условие WHERE (без слова WHERE, если пусто — удалятся все)</label>
+                            <input type="text" id="delete-where" placeholder="например: id = 1">
                         </div>
-                        <p class="form-warning">Внимание: пустой WHERE приведет к удалению ВСЕХ строк.</p>
+                        <p class="form-warning">Внимание: DELETE без WHERE удалит все строки в таблице.</p>
                         <button type="submit" class="btn btn-danger">Выполнить DELETE</button>
                     </form>
                 </div>
@@ -252,16 +292,16 @@
                         </div>
                         <div class="form-group">
                             <label for="idx-name">Имя индекса</label>
-                            <input type="text" id="idx-name" placeholder="например: idx_client_email" required autocomplete="off">
+                            <input type="text" id="idx-name" placeholder="например: idx_clients_email" required autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="idx-columns">Столбцы индекса (через запятую)</label>
-                            <input type="text" id="idx-columns" placeholder="например: email или last_name, first_name" required autocomplete="off">
+                            <label for="idx-columns">Столбцы (через запятую)</label>
+                            <input type="text" id="idx-columns" placeholder="email, age" required autocomplete="off">
                         </div>
-                        <div class="form-group-checkbox">
-                            <label class="checkbox-label">
+                        <div class="form-group checkbox-group">
+                            <label>
                                 <input type="checkbox" id="idx-unique">
-                                <span>Уникальный индекс (UNIQUE INDEX)</span>
+                                <span>Уникальный индекс (UNIQUE)</span>
                             </label>
                         </div>
                         <button type="submit" class="btn btn-primary">Создать индекс</button>
@@ -274,7 +314,7 @@
                         </div>
                         <div class="form-group">
                             <label for="drop-idx-name">Имя индекса для удаления</label>
-                            <input type="text" id="drop-idx-name" placeholder="например: idx_client_email" required autocomplete="off">
+                            <input type="text" id="drop-idx-name" placeholder="например: idx_clients_email" required autocomplete="off">
                         </div>
                         <button type="submit" class="btn btn-danger">Удалить индекс</button>
                     </form>
@@ -315,15 +355,15 @@
                             <input type="text" id="trg-table" placeholder="имя таблицы" required autocomplete="off">
                         </div>
                         <div class="form-row">
-                            <div class="form-group flex-1">
-                                <label for="trg-timing">Момент срабатывания</label>
+                            <div class="form-group col-half">
+                                <label for="trg-timing">Момент срабатывания (TIMING)</label>
                                 <select id="trg-timing">
-                                    <option value="BEFORE">BEFORE (до операции)</option>
-                                    <option value="AFTER">AFTER (после операции)</option>
+                                    <option value="BEFORE">BEFORE (до события)</option>
+                                    <option value="AFTER">AFTER (после события)</option>
                                 </select>
                             </div>
-                            <div class="form-group flex-1">
-                                <label for="trg-event">Событие</label>
+                            <div class="form-group col-half">
+                                <label for="trg-event">Событие (EVENT)</label>
                                 <select id="trg-event">
                                     <option value="INSERT">INSERT</option>
                                     <option value="UPDATE">UPDATE</option>
@@ -332,8 +372,8 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="trg-statement">Тело триггера (оператор или BEGIN ... END)</label>
-                            <textarea id="trg-statement" rows="4" placeholder="SET NEW.email = LOWER(NEW.email);" required></textarea>
+                            <label for="trg-statement">Тело триггера (STATEMENT / BEGIN...END)</label>
+                            <textarea id="trg-statement" rows="4" placeholder="SET NEW.email = LOWER(NEW.email)" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Создать триггер</button>
                     </form>
@@ -347,7 +387,7 @@
                     </form>
 
                     <form id="form-show-triggers" class="card-form">
-                        <p class="form-hint">Отобразить все активные триггеры текущей базы данных.</p>
+                        <p class="form-hint">Отобразить все триггеры текущей базы данных.</p>
                         <button type="submit" class="btn btn-primary">Показать все триггеры</button>
                     </form>
                 </div>
@@ -417,7 +457,6 @@
 
                 <!-- ВКЛАДКА 6: ПРЕДСТАВЛЕНИЯ -->
                 <div id="tab-views" class="tab-content">
-                    <div class="section-title">Представления (VIEW)</div>
                     <div class="command-selector">
                         <label class="radio-label">
                             <input type="radio" name="view-subcommand" value="create" checked>
@@ -454,16 +493,80 @@
                     </form>
 
                     <form id="form-show-views" class="card-form">
+                        <p class="form-hint">Отобразить все VIEW в текущей базе данных.</p>
                         <button type="submit" class="btn btn-primary">Показать все VIEW</button>
                     </form>
                 </div>
 
-                <!-- ВКЛАДКА 7: SQL КОНСОЛЬ -->
+                <!-- ВКЛАДКА 7: БАЗЫ ДАННЫХ (Управление БД) -->
+                <div id="tab-databases" class="tab-content">
+                    <div class="command-selector">
+                        <label class="radio-label">
+                            <input type="radio" name="db-subcommand" value="create" checked>
+                            <span>CREATE DATABASE</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="db-subcommand" value="drop">
+                            <span>DROP DATABASE</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="db-subcommand" value="show">
+                            <span>SHOW DATABASES</span>
+                        </label>
+                    </div>
+
+                    <form id="form-create-db-tab" class="card-form active">
+                        <div class="form-group">
+                            <label for="tab-create-db-name">Имя новой базы данных</label>
+                            <input type="text" id="tab-create-db-name" placeholder="например: shop_database" required autocomplete="off">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-half">
+                                <label for="tab-create-db-charset">Кодировка (CHARSET)</label>
+                                <select id="tab-create-db-charset">
+                                    <option value="utf8mb4" selected>utf8mb4 (рекомендуется)</option>
+                                    <option value="utf8mb3">utf8mb3</option>
+                                    <option value="latin1">latin1</option>
+                                    <option value="cp1251">cp1251 (Windows Cyrillic)</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-half">
+                                <label for="tab-create-db-collation">Сопоставление (COLLATION)</label>
+                                <select id="tab-create-db-collation">
+                                    <option value="utf8mb4_unicode_ci" selected>utf8mb4_unicode_ci</option>
+                                    <option value="utf8mb4_general_ci">utf8mb4_general_ci</option>
+                                    <option value="utf8mb4_0900_ai_ci">utf8mb4_0900_ai_ci</option>
+                                    <option value="cp1251_general_ci">cp1251_general_ci</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Создать базу данных</button>
+                    </form>
+
+                    <form id="form-drop-db-tab" class="card-form">
+                        <div class="form-group">
+                            <label for="tab-drop-db-name">Имя базы данных для удаления</label>
+                            <input type="text" id="tab-drop-db-name" placeholder="имя базы данных" required autocomplete="off">
+                        </div>
+                        <p class="form-warning">Внимание: вся база данных со всеми её таблицами, процедурами и данными будет безвозвратно удалена!</p>
+                        <button type="submit" class="btn btn-danger">Удалить базу данных</button>
+                    </form>
+
+                    <form id="form-show-dbs-tab" class="card-form">
+                        <p class="form-hint">Получить список всех баз данных на сервере MySQL.</p>
+                        <button type="submit" class="btn btn-primary">Показать все базы данных</button>
+                    </form>
+                </div>
+
+                <!-- ВКЛАДКА 8: SQL КОНСОЛЬ -->
                 <div id="tab-raw" class="tab-content">
                     <form id="form-raw-sql" class="card-form active">
                         <div class="form-group">
-                            <label for="raw-sql-input">Произвольный SQL-запрос</label>
-                            <textarea id="raw-sql-input" rows="6" placeholder="SELECT * FROM clients;"></textarea>
+                            <div class="raw-sql-header">
+                                <label for="raw-sql-input">Произвольный SQL-запрос</label>
+                                <span class="raw-sql-hint" id="raw-sql-target-hint">База: Воейков</span>
+                            </div>
+                            <textarea id="raw-sql-input" rows="7" placeholder="SELECT * FROM clients;&#10;-- или любые другие команды DDL/DML"></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Выполнить запрос</button>
                     </form>
@@ -472,7 +575,10 @@
                 <!-- Панель вывода результатов -->
                 <section class="results-panel" id="results-panel">
                     <div class="results-header">
-                        <span class="results-title">Результат выполнения</span>
+                        <div class="results-title-group">
+                            <span class="results-title" id="results-title-text">Результат выполнения</span>
+                            <span class="badge" id="results-count-badge" style="display: none;">0 строк</span>
+                        </div>
                         <div class="results-meta">
                             <span class="meta-tag" id="meta-status">—</span>
                             <span class="meta-tag" id="meta-time">—</span>
@@ -481,11 +587,24 @@
 
                     <div class="query-preview" id="query-preview" style="display: none;">
                         <span class="query-label">SQL</span>
-                        <code id="query-code"></code>
+                        <code id="query-code" title="Нажмите, чтобы развернуть/свернуть"></code>
+                        <div class="query-preview-actions">
+                            <button type="button" class="query-action-btn" id="btn-toggle-query-expand" title="Развернуть / свернуть">↕</button>
+                            <button type="button" class="query-action-btn" id="btn-copy-query" title="Скопировать SQL">📋</button>
+                        </div>
                     </div>
 
                     <div id="result-message" class="result-message">
                         Ожидание выполнения команды...
+                    </div>
+
+                    <div class="table-toolbar" id="table-toolbar" style="display: none;">
+                        <div class="toolbar-left">
+                            <input type="text" id="table-filter-input" placeholder="Быстрый поиск по строкам..." class="filter-input">
+                        </div>
+                        <div class="toolbar-right">
+                            <span class="toolbar-text" id="table-rows-info">Показано 0 строк</span>
+                        </div>
                     </div>
 
                     <div id="table-container" class="table-container" style="display: none;">
@@ -497,6 +616,46 @@
                 </section>
             </section>
         </main>
+    </div>
+
+    <!-- Модальное окно создания базы данных -->
+    <div id="modal-create-db" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Создать новую базу данных</h3>
+                <button type="button" class="modal-close-btn" id="modal-close-create-db">&times;</button>
+            </div>
+            <form id="form-modal-create-db">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="modal-db-name">Имя базы данных</label>
+                        <input type="text" id="modal-db-name" placeholder="например: my_new_db" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="modal-db-charset">Кодировка (CHARSET)</label>
+                        <select id="modal-db-charset">
+                            <option value="utf8mb4" selected>utf8mb4 (рекомендуется)</option>
+                            <option value="utf8mb3">utf8mb3</option>
+                            <option value="latin1">latin1</option>
+                            <option value="cp1251">cp1251 (Windows Cyrillic)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="modal-db-collation">Сопоставление (COLLATION)</label>
+                        <select id="modal-db-collation">
+                            <option value="utf8mb4_unicode_ci" selected>utf8mb4_unicode_ci</option>
+                            <option value="utf8mb4_general_ci">utf8mb4_general_ci</option>
+                            <option value="utf8mb4_0900_ai_ci">utf8mb4_0900_ai_ci</option>
+                            <option value="cp1251_general_ci">cp1251_general_ci</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-create-db">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Создать базу данных</button>
+                </div>
+            </form>
+        </div>
     </div>
 </body>
 </html>
