@@ -73,6 +73,121 @@ def get_db(db_name: Optional[str] = None):
     return mysql.connector.connect(**config)
 
 
+def split_sql_statements(script: str) -> List[str]:
+    statements = []
+    current_statement = []
+    current_delimiter = ";"
+
+    lines = script.splitlines(keepends=True)
+    in_single_quote = False
+    in_double_quote = False
+    in_backtick = False
+    in_block_comment = False
+
+    for line in lines:
+        stripped = line.strip()
+        # Директивы типа DELIMITER обрабатываются вне кавычек и комментариев
+        if not in_single_quote and not in_double_quote and not in_backtick and not in_block_comment:
+            if stripped.upper().startswith("DELIMITER"):
+                parts = stripped.split(None, 1)
+                if len(parts) > 1 and parts[1].strip():
+                    curr = "".join(current_statement).strip()
+                    if curr:
+                        statements.append(curr)
+                        current_statement = []
+                    current_delimiter = parts[1].strip()
+                    continue
+
+        idx = 0
+        line_len = len(line)
+        while idx < line_len:
+            ch = line[idx]
+            next_ch = line[idx + 1] if idx + 1 < line_len else ""
+
+            # Блочные комментарии /* ... */
+            if in_block_comment:
+                current_statement.append(ch)
+                if ch == "*" and next_ch == "/":
+                    current_statement.append(next_ch)
+                    in_block_comment = False
+                    idx += 2
+                    continue
+                idx += 1
+                continue
+
+            # Однострочные комментарии -- или #
+            if not in_single_quote and not in_double_quote and not in_backtick:
+                if ch == "#" or (ch == "-" and next_ch == "-"):
+                    current_statement.append(line[idx:])
+                    break
+
+                if ch == "/" and next_ch == "*":
+                    current_statement.append(ch)
+                    current_statement.append(next_ch)
+                    in_block_comment = True
+                    idx += 2
+                    continue
+
+            # Одинарные кавычки '
+            if ch == "'" and not in_double_quote and not in_backtick:
+                current_statement.append(ch)
+                if not in_single_quote:
+                    in_single_quote = True
+                else:
+                    bs_count = 0
+                    b_idx = len(current_statement) - 2
+                    while b_idx >= 0 and current_statement[b_idx] == "\\":
+                        bs_count += 1
+                        b_idx -= 1
+                    if bs_count % 2 == 0:
+                        in_single_quote = False
+                idx += 1
+                continue
+
+            # Двойные кавычки "
+            if ch == '"' and not in_single_quote and not in_backtick:
+                current_statement.append(ch)
+                if not in_double_quote:
+                    in_double_quote = True
+                else:
+                    bs_count = 0
+                    b_idx = len(current_statement) - 2
+                    while b_idx >= 0 and current_statement[b_idx] == "\\":
+                        bs_count += 1
+                        b_idx -= 1
+                    if bs_count % 2 == 0:
+                        in_double_quote = False
+                idx += 1
+                continue
+
+            # Обратные кавычки `
+            if ch == "`" and not in_single_quote and not in_double_quote:
+                current_statement.append(ch)
+                in_backtick = not in_backtick
+                idx += 1
+                continue
+
+            # Проверка текущего разделителя (DELIMITER)
+            if not in_single_quote and not in_double_quote and not in_backtick:
+                delim_len = len(current_delimiter)
+                if line[idx:idx + delim_len] == current_delimiter:
+                    stmt = "".join(current_statement).strip()
+                    if stmt:
+                        statements.append(stmt)
+                    current_statement = []
+                    idx += delim_len
+                    continue
+
+            current_statement.append(ch)
+            idx += 1
+
+    final_stmt = "".join(current_statement).strip()
+    if final_stmt:
+        statements.append(final_stmt)
+
+    return statements
+
+
 def execute_sql(
     query: str,
     is_select: bool = False,
@@ -83,30 +198,37 @@ def execute_sql(
     conn = None
     cursor = None
     try:
+        statements = split_sql_statements(query)
+        if not statements:
+            return {
+                "status": 200,
+                "success": True,
+                "query": query,
+                "affected_rows": 0,
+                "columns": [],
+                "rows": [],
+                "duration_ms": 0,
+                "message": "Запрос пуст или содержит только комментарии",
+            }
+
         conn = get_db(db_name)
         cursor = conn.cursor(dictionary=True)
         rows: List[Dict[str, Any]] = []
         columns: List[str] = []
         affected_rows = 0
 
-        if multi:
-            for result in cursor.execute(query, multi=True):
-                if result.with_rows:
-                    raw_rows = result.fetchall()
-                    rows = [serialize_row(r) for r in raw_rows]
-                    if result.description:
-                        columns = [desc[0] for desc in result.description]
-                affected_rows += result.rowcount
-        else:
-            cursor.execute(query)
-            affected_rows = cursor.rowcount
-            if is_select or cursor.description is not None:
+        for stmt in statements:
+            cursor.execute(stmt)
+            if cursor.rowcount != -1:
+                affected_rows += cursor.rowcount
+            if cursor.description is not None:
                 columns = [desc[0] for desc in cursor.description]
                 raw_rows = cursor.fetchall()
                 rows = [serialize_row(r) for r in raw_rows]
 
         conn.commit()
         duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        stmt_info = f"Выполнено запросов: {len(statements)}" if len(statements) > 1 else "Запрос успешно выполнен"
         return {
             "status": 200,
             "success": True,
@@ -115,7 +237,7 @@ def execute_sql(
             "columns": columns,
             "rows": rows,
             "duration_ms": duration_ms,
-            "message": "Запрос успешно выполнен",
+            "message": stmt_info,
         }
     except mysql.connector.Error as err:
         duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
@@ -678,7 +800,7 @@ async def raw_sql_endpoint(payload: RawSQLPayload):
         return {"status": 400, "success": False, "message": "Запрос пуст"}
     target_db = clean_identifier(payload.database) if payload.database else DB_CONFIG.get("database")
     is_select = query.upper().startswith(("SELECT", "SHOW", "DESCRIBE", "EXPLAIN"))
-    return execute_sql(query, is_select=is_select, multi=True, db_name=target_db)
+    return execute_sql(query, is_select=is_select, db_name=target_db)
 
 
 if __name__ == "__main__":
