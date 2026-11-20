@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initForms();
     initSearchFilter();
     initQueryPreviewActions();
+    initTabSupportInTextareas();
 
     // Загрузка дерева баз данных
     loadDatabasesAndTree();
@@ -1100,5 +1101,113 @@ function initQueryPreviewActions() {
             }
         });
     }
+}
+
+// --- ПОДДЕРЖКА ТАБОВ И ГОРЯЧИХ КЛАВИШ В ТЕКСТОВЫХ ПОЛЯХ ---
+function initTabSupportInTextareas() {
+    document.addEventListener('keydown', (e) => {
+        const target = e.target;
+        if (!target) return;
+
+        // Горячая клавиша Ctrl+Enter / Cmd+Enter для быстрой отправки формы
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') {
+                const form = target.closest('form');
+                if (form) {
+                    e.preventDefault();
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                    }
+                }
+            }
+            return;
+        }
+
+        // Поддержка Tab и Shift+Tab только для многострочных полей (textarea)
+        if (target.tagName !== 'TEXTAREA') return;
+
+        if (e.key === 'Tab') {
+            e.preventDefault();
+
+            const start = target.selectionStart;
+            const end = target.selectionEnd;
+            const val = target.value;
+
+            if (e.shiftKey) {
+                // Shift+Tab: уменьшение отступа (unindent)
+                const lineStart = val.lastIndexOf('\n', start - 1) + 1;
+                let lineEnd = val.indexOf('\n', end);
+                if (lineEnd === -1) lineEnd = val.length;
+
+                const textToUnindent = val.substring(lineStart, lineEnd);
+                const lines = textToUnindent.split('\n');
+                let firstLineRemoved = 0;
+                let totalRemoved = 0;
+
+                const processed = lines.map((line, idx) => {
+                    let removed = 0;
+                    let newLine = line;
+                    if (line.startsWith('\t')) {
+                        newLine = line.substring(1);
+                        removed = 1;
+                    } else if (line.startsWith('    ')) {
+                        newLine = line.substring(4);
+                        removed = 4;
+                    } else {
+                        const m = line.match(/^ {1,3}/);
+                        if (m) {
+                            newLine = line.substring(m[0].length);
+                            removed = m[0].length;
+                        }
+                    }
+                    if (idx === 0) firstLineRemoved = removed;
+                    totalRemoved += removed;
+                    return newLine;
+                });
+
+                const replacement = processed.join('\n');
+                target.setRangeText(replacement, lineStart, lineEnd, 'preserve');
+
+                const newStart = Math.max(lineStart, start - firstLineRemoved);
+                const newEnd = Math.max(newStart, end - totalRemoved);
+                target.setSelectionRange(newStart, newEnd);
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+            } else {
+                // Tab: увеличение отступа (indent)
+                const isMultiLine = start !== end && val.substring(start, end).includes('\n');
+
+                if (isMultiLine) {
+                    // Выделено несколько строк: добавляем табуляцию перед каждой строкой
+                    const lineStart = val.lastIndexOf('\n', start - 1) + 1;
+                    let lineEnd = val.indexOf('\n', end);
+                    if (lineEnd === -1) lineEnd = val.length;
+
+                    const textToIndent = val.substring(lineStart, lineEnd);
+                    const lines = textToIndent.split('\n');
+                    const processed = lines.map(line => '\t' + line);
+                    const replacement = processed.join('\n');
+
+                    target.setRangeText(replacement, lineStart, lineEnd, 'preserve');
+                    target.setSelectionRange(start + 1, end + lines.length);
+                    target.dispatchEvent(new Event('input', { bubbles: true }));
+                } else {
+                    // Одиночный курсор или выделение внутри одной строки: вставляем символ табуляции '\t'
+                    let inserted = false;
+                    try {
+                        inserted = document.execCommand('insertText', false, '\t');
+                    } catch (err) {
+                        inserted = false;
+                    }
+
+                    if (!inserted) {
+                        target.setRangeText('\t', start, end, 'end');
+                        target.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+            }
+        }
+    });
 }
 

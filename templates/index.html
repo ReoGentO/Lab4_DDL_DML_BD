@@ -372,7 +372,7 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="trg-statement">Тело триггера (STATEMENT / BEGIN...END)</label>
+                            <label for="trg-statement">Тело триггера (STATEMENT / BEGIN...END) <span class="editor-kbd-hint">Tab: отступ • Shift+Tab: возврат</span></label>
                             <textarea id="trg-statement" rows="4" placeholder="SET NEW.email = LOWER(NEW.email)" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Создать триггер</button>
@@ -423,7 +423,7 @@
                             <input type="text" id="proc-params" placeholder="IN min_age INT" autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="proc-body">Тело процедуры (BEGIN ... END)</label>
+                            <label for="proc-body">Тело процедуры (BEGIN ... END) <span class="editor-kbd-hint">Tab: отступ • Shift+Tab: возврат</span></label>
                             <textarea id="proc-body" rows="5" placeholder="BEGIN&#10;    SELECT * FROM clients WHERE age >= min_age;&#10;END" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Создать процедуру</button>
@@ -478,7 +478,7 @@
                             <input type="text" id="view-name" placeholder="например: adult_clients" required autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="view-query">Запрос SELECT</label>
+                            <label for="view-query">Запрос SELECT <span class="editor-kbd-hint">Tab: отступ • Shift+Tab: возврат</span></label>
                             <textarea id="view-query" rows="3" placeholder="SELECT id, first_name, email FROM clients WHERE age >= 18" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Создать представление</button>
@@ -563,7 +563,7 @@
                     <form id="form-raw-sql" class="card-form active">
                         <div class="form-group">
                             <div class="raw-sql-header">
-                                <label for="raw-sql-input">Произвольный SQL-запрос</label>
+                                <label for="raw-sql-input">Произвольный SQL-запрос <span class="editor-kbd-hint">Tab: отступ • Shift+Tab: возврат • Ctrl+Enter: запуск</span></label>
                                 <span class="raw-sql-hint" id="raw-sql-target-hint">База: Воейков</span>
                             </div>
                             <textarea id="raw-sql-input" rows="7" placeholder="SELECT * FROM clients;&#10;-- или любые другие команды DDL/DML"></textarea>

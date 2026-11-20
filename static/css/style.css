@@ -652,6 +652,12 @@ body {
     transition: border-color 140ms var(--ease-out);
 }
 
+.form-group textarea {
+    tab-size: 4;
+    -moz-tab-size: 4;
+    line-height: 1.5;
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
@@ -670,6 +676,14 @@ body {
     background-color: var(--accent-subtle);
     padding: 2px 7px;
     border-radius: 4px;
+    font-family: var(--font-mono);
+}
+
+.editor-kbd-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: normal;
+    margin-left: 8px;
     font-family: var(--font-mono);
 }
 
