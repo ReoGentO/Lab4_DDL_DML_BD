@@ -376,6 +376,24 @@ async def database_tree(db_name: str):
     )
     triggers = [row["Trigger"] for row in trg_res["rows"]] if trg_res.get("success") and trg_res.get("rows") else []
 
+    # Колонки таблиц для автодополнения (SQL autocomplete)
+    c_res = execute_sql(
+        f"SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{clean_db}' ORDER BY TABLE_NAME, ORDINAL_POSITION;",
+        is_select=True,
+        db_name=clean_db,
+    )
+    columns_map = {}
+    all_columns = set()
+    if c_res.get("success") and c_res.get("rows"):
+        for row in c_res["rows"]:
+            t_name = row.get("TABLE_NAME") or row.get("table_name")
+            c_name = row.get("COLUMN_NAME") or row.get("column_name")
+            if t_name and c_name:
+                if t_name not in columns_map:
+                    columns_map[t_name] = []
+                columns_map[t_name].append(c_name)
+                all_columns.add(c_name)
+
     return {
         "status": 200,
         "success": True,
@@ -384,6 +402,8 @@ async def database_tree(db_name: str):
         "views": views,
         "procedures": procedures,
         "triggers": triggers,
+        "columns": columns_map,
+        "all_columns": sorted(list(all_columns)),
     }
 
 

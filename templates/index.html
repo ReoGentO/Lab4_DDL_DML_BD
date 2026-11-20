@@ -79,17 +79,19 @@
                     </div>
                 </div>
 
-                <!-- Вкладки верхнего уровня -->
-                <nav class="tabs-nav" aria-label="Разделы команд">
-                    <button type="button" class="tab-btn active" data-tab="ddl">Таблицы</button>
-                    <button type="button" class="tab-btn" data-tab="dml">Данные</button>
-                    <button type="button" class="tab-btn" data-tab="indexes">Индексы</button>
-                    <button type="button" class="tab-btn" data-tab="triggers">Триггеры</button>
-                    <button type="button" class="tab-btn" data-tab="procedures">Хранимые процедуры</button>
-                    <button type="button" class="tab-btn" data-tab="views">Представления</button>
-                    <button type="button" class="tab-btn" data-tab="databases">Базы данных</button>
-                    <button type="button" class="tab-btn" data-tab="raw">SQL Консоль</button>
-                </nav>
+                <!-- Секция форм и вкладок ввода -->
+                <div id="forms-section" class="forms-section">
+                    <!-- Вкладки верхнего уровня -->
+                    <nav class="tabs-nav" aria-label="Разделы команд">
+                        <button type="button" class="tab-btn active" data-tab="ddl">Таблицы</button>
+                        <button type="button" class="tab-btn" data-tab="dml">Данные</button>
+                        <button type="button" class="tab-btn" data-tab="indexes">Индексы</button>
+                        <button type="button" class="tab-btn" data-tab="triggers">Триггеры</button>
+                        <button type="button" class="tab-btn" data-tab="procedures">Хранимые процедуры</button>
+                        <button type="button" class="tab-btn" data-tab="views">Представления</button>
+                        <button type="button" class="tab-btn" data-tab="databases">Базы данных</button>
+                        <button type="button" class="tab-btn" data-tab="raw">SQL Консоль</button>
+                    </nav>
 
                 <!-- ВКЛАДКА 1: DDL (Таблицы) -->
                 <div id="tab-ddl" class="tab-content active">
@@ -563,14 +565,15 @@
                     <form id="form-raw-sql" class="card-form active">
                         <div class="form-group">
                             <div class="raw-sql-header">
-                                <label for="raw-sql-input">Произвольный SQL-запрос <span class="editor-kbd-hint">Tab: отступ • Shift+Tab: возврат • Ctrl+Enter: запуск</span></label>
+                                <label for="raw-sql-input">Произвольный SQL-запрос <span class="editor-kbd-hint">Tab/Enter: подсказка • Ctrl+Space: автодополнение • Ctrl+Enter: запуск</span></label>
                                 <span class="raw-sql-hint" id="raw-sql-target-hint">База: Воейков</span>
                             </div>
-                            <textarea id="raw-sql-input" rows="7" placeholder="SELECT * FROM clients;&#10;-- или любые другие команды DDL/DML"></textarea>
+                            <textarea id="raw-sql-input" rows="5" placeholder="SELECT * FROM clients;&#10;-- или любые другие команды DDL/DML"></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Выполнить запрос</button>
                     </form>
                 </div>
+                </div> <!-- /forms-section -->
 
                 <!-- Панель вывода результатов -->
                 <section class="results-panel" id="results-panel">
@@ -582,6 +585,8 @@
                         <div class="results-meta">
                             <span class="meta-tag" id="meta-status">—</span>
                             <span class="meta-tag" id="meta-time">—</span>
+                            <button type="button" class="panel-header-btn" id="btn-toggle-forms-collapse" title="Скрыть/показать форму ввода">▲ Свернуть форму</button>
+                            <button type="button" class="panel-header-btn" id="btn-toggle-results-maximize" title="Развернуть результаты во весь экран">⛶ Во весь экран</button>
                         </div>
                     </div>
 

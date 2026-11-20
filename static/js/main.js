@@ -19,7 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initForms();
     initSearchFilter();
     initQueryPreviewActions();
+    initResultsPanelActions();
     initTabSupportInTextareas();
+    initSqlAutocomplete();
 
     // Загрузка дерева баз данных
     loadDatabasesAndTree();
@@ -35,9 +37,19 @@ document.addEventListener('DOMContentLoaded', () => {
 function initTabs() {
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
+    const formsSection = document.getElementById('forms-section');
+    const btnCollapseForms = document.getElementById('btn-toggle-forms-collapse');
 
     tabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
+            if (formsSection && formsSection.classList.contains('collapsed')) {
+                formsSection.classList.remove('collapsed');
+                if (btnCollapseForms) {
+                    btnCollapseForms.classList.remove('active');
+                    btnCollapseForms.textContent = '▲ Свернуть форму';
+                }
+            }
+
             const targetId = `tab-${btn.dataset.tab}`;
             tabButtons.forEach(b => b.classList.remove('active'));
             tabContents.forEach(c => c.classList.remove('active'));
@@ -1103,11 +1115,81 @@ function initQueryPreviewActions() {
     }
 }
 
-// --- ПОДДЕРЖКА ТАБОВ И ГОРЯЧИХ КЛАВИШ В ТЕКСТОВЫХ ПОЛЯХ ---
+// --- УПРАВЛЕНИЕ РАЗВОРАЧИВАНИЕМ И МАСШТАБОМ РЕЗУЛЬТАТОВ ---
+function initResultsPanelActions() {
+    const resultsPanel = document.getElementById('results-panel');
+    const formsSection = document.getElementById('forms-section');
+    const btnMaximize = document.getElementById('btn-toggle-results-maximize');
+    const btnCollapseForms = document.getElementById('btn-toggle-forms-collapse');
+
+    if (btnMaximize && resultsPanel) {
+        btnMaximize.addEventListener('click', () => {
+            const isMax = resultsPanel.classList.toggle('maximized');
+            btnMaximize.classList.toggle('active', isMax);
+            btnMaximize.textContent = isMax ? '🗗 Свернуть' : '⛶ Во весь экран';
+        });
+    }
+
+    if (btnCollapseForms && formsSection) {
+        btnCollapseForms.addEventListener('click', () => {
+            const isCollapsed = formsSection.classList.toggle('collapsed');
+            btnCollapseForms.classList.toggle('active', isCollapsed);
+            btnCollapseForms.textContent = isCollapsed ? '▼ Показать форму' : '▲ Свернуть форму';
+        });
+    }
+
+    // Если при нажатии Esc открыт полноэкранный режим панели результатов — сворачиваем его
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && resultsPanel && resultsPanel.classList.contains('maximized')) {
+            if (!window.sqlAutocomplete || !window.sqlAutocomplete.isVisible()) {
+                resultsPanel.classList.remove('maximized');
+                if (btnMaximize) {
+                    btnMaximize.classList.remove('active');
+                    btnMaximize.textContent = '⛶ Во весь экран';
+                }
+            }
+        }
+    });
+}
+
+// --- ПОДДЕРЖКА ТАБОВ, АВТОДОПОЛНЕНИЯ И ГОРЯЧИХ КЛАВИШ В ТЕКСТОВЫХ ПОЛЯХ ---
 function initTabSupportInTextareas() {
     document.addEventListener('keydown', (e) => {
         const target = e.target;
         if (!target) return;
+
+        // Перехват клавиш навигации и выбора когда открыт autocomplete popup
+        if (window.sqlAutocomplete && window.sqlAutocomplete.isVisible()) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                window.sqlAutocomplete.moveSelection(1);
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                window.sqlAutocomplete.moveSelection(-1);
+                return;
+            }
+            if (e.key === 'Tab' || e.key === 'Enter') {
+                e.preventDefault();
+                window.sqlAutocomplete.applySelected();
+                return;
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                window.sqlAutocomplete.hide();
+                return;
+            }
+        }
+
+        // Принудительный вызов подсказок по комбинации Ctrl+Space
+        if ((e.ctrlKey || e.metaKey) && (e.code === 'Space' || e.key === ' ')) {
+            if (target.tagName === 'TEXTAREA' && window.sqlAutocomplete) {
+                e.preventDefault();
+                window.sqlAutocomplete.trigger(target, true);
+                return;
+            }
+        }
 
         // Горячая клавиша Ctrl+Enter / Cmd+Enter для быстрой отправки формы
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -1208,6 +1290,453 @@ function initTabSupportInTextareas() {
                 }
             }
         }
+    });
+}
+
+// --- SQL AUTOCOMPLETE (АВТОДОПОЛНЕНИЕ В SQL РЕДАКТОРАХ) ---
+const SQL_KEYWORDS = [
+    'SELECT', 'FROM', 'WHERE', 'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE FROM',
+    'JOIN', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'CROSS JOIN',
+    'ON', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'ASC', 'DESC',
+    'AND', 'OR', 'NOT', 'IN', 'IS NULL', 'IS NOT NULL', 'BETWEEN', 'LIKE', 'EXISTS',
+    'CREATE TABLE', 'ALTER TABLE', 'DROP TABLE', 'TRUNCATE TABLE',
+    'CREATE DATABASE', 'DROP DATABASE', 'USE', 'SHOW DATABASES', 'SHOW TABLES', 'SHOW COLUMNS FROM',
+    'CREATE VIEW', 'DROP VIEW', 'CREATE PROCEDURE', 'DROP PROCEDURE', 'CALL',
+    'CREATE TRIGGER', 'DROP TRIGGER', 'SHOW CREATE TABLE',
+    'PRIMARY KEY', 'FOREIGN KEY', 'REFERENCES', 'AUTO_INCREMENT', 'UNIQUE', 'INDEX',
+    'DEFAULT', 'NULL', 'NOT NULL', 'CHECK', 'CASCADE', 'RESTRICT', 'ENGINE', 'CHARSET',
+    'AS', 'DISTINCT', 'ALL', 'UNION', 'UNION ALL', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
+    'IF', 'BEGIN', 'DECLARE', 'DELIMITER', 'EXPLAIN', 'DESCRIBE'
+];
+
+const SQL_FUNCTIONS = [
+    'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'CONCAT', 'CONCAT_WS', 'SUBSTRING', 'LENGTH',
+    'LOWER', 'UPPER', 'TRIM', 'REPLACE', 'NOW', 'CURDATE', 'CURTIME', 'DATE',
+    'DATEDIFF', 'DATE_ADD', 'DATE_SUB', 'IFNULL', 'COALESCE', 'ROUND', 'FLOOR',
+    'CEIL', 'ABS', 'MOD', 'CAST', 'CONVERT', 'DATABASE', 'VERSION', 'USER'
+];
+
+const SQL_TYPES = [
+    'INT', 'BIGINT', 'SMALLINT', 'TINYINT', 'VARCHAR(255)', 'TEXT', 'MEDIUMTEXT',
+    'LONGTEXT', 'DECIMAL(10,2)', 'FLOAT', 'DOUBLE', 'BOOLEAN', 'DATE', 'DATETIME',
+    'TIMESTAMP', 'TIME', 'YEAR', 'JSON', 'BLOB'
+];
+
+class SqlAutocomplete {
+    constructor() {
+        this.dropdown = null;
+        this.mirror = null;
+        this.activeTextarea = null;
+        this.currentCandidates = [];
+        this.selectedIndex = -1;
+        this.wordStart = 0;
+        this.tableNameContext = null;
+        this.initDOM();
+    }
+
+    initDOM() {
+        this.dropdown = document.createElement('div');
+        this.dropdown.id = 'sql-autocomplete-dropdown';
+        this.dropdown.className = 'sql-ac-dropdown';
+        this.dropdown.style.display = 'none';
+        document.body.appendChild(this.dropdown);
+
+        // Клик вне выпадающего списка закрывает его (не закрываем при клике внутри списка или по скроллбару)
+        document.addEventListener('mousedown', (e) => {
+            if (!this.isVisible()) return;
+            if (this.dropdown.contains(e.target) || e.target === this.dropdown || e.target === this.activeTextarea) {
+                return;
+            }
+            this.hide();
+        });
+
+        // Скролл окна закрывает список, НО скролл внутри самого списка НЕ должен его закрывать
+        window.addEventListener('scroll', (e) => {
+            if (!this.isVisible()) return;
+            if (e.target === this.dropdown || (e.target && this.dropdown.contains(e.target))) {
+                return;
+            }
+            this.hide();
+        }, true);
+
+        // Предотвращаем всплытие скролла колесиком мыши из списка наружу
+        this.dropdown.addEventListener('wheel', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
+    }
+
+    isVisible() {
+        return this.dropdown && this.dropdown.style.display !== 'none';
+    }
+
+    hide() {
+        if (this.dropdown) {
+            this.dropdown.style.display = 'none';
+            this.dropdown.innerHTML = '';
+        }
+        this.currentCandidates = [];
+        this.selectedIndex = -1;
+        this.activeTextarea = null;
+    }
+
+    attach(textarea) {
+        if (!textarea || textarea._hasSqlAutocomplete) return;
+        textarea._hasSqlAutocomplete = true;
+
+        textarea.addEventListener('input', () => {
+            this.onInput(textarea);
+        });
+
+        textarea.addEventListener('click', () => {
+            this.hide();
+        });
+
+        textarea.addEventListener('scroll', () => {
+            if (this.isVisible()) this.reposition();
+        });
+    }
+
+    onInput(textarea) {
+        this.activeTextarea = textarea;
+        const pos = textarea.selectionStart;
+        const val = textarea.value;
+        const before = val.slice(0, pos);
+
+        // 1. Проверяем точечный контекст: имя_таблицы.колонка (например clients.id или clients.)
+        const dotMatch = before.match(/([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]*)$/);
+        if (dotMatch) {
+            this.tableNameContext = dotMatch[1];
+            const prefix = dotMatch[2];
+            this.wordStart = pos - prefix.length;
+            this.queryAndShow(prefix, this.tableNameContext, true);
+            return;
+        }
+
+        this.tableNameContext = null;
+
+        // 2. Обычное слово перед курсором
+        const match = before.match(/([a-zA-Z0-9_]+)$/);
+        if (match) {
+            const prefix = match[1];
+            this.wordStart = pos - prefix.length;
+            this.queryAndShow(prefix, null, false);
+        } else {
+            this.hide();
+        }
+    }
+
+    trigger(textarea, forceAll = false) {
+        this.activeTextarea = textarea;
+        const pos = textarea.selectionStart;
+        const val = textarea.value;
+        const before = val.slice(0, pos);
+
+        const dotMatch = before.match(/([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]*)$/);
+        if (dotMatch) {
+            this.tableNameContext = dotMatch[1];
+            const prefix = dotMatch[2];
+            this.wordStart = pos - prefix.length;
+            this.queryAndShow(prefix, this.tableNameContext, true);
+            return;
+        }
+
+        this.tableNameContext = null;
+        const match = before.match(/([a-zA-Z0-9_]+)$/);
+        const prefix = match ? match[1] : '';
+        this.wordStart = pos - prefix.length;
+        this.queryAndShow(prefix, null, forceAll);
+    }
+
+    getCandidates(prefix, tableName = null, forceAll = false) {
+        const list = [];
+        const activeDb = appState.activeDatabase;
+        const tree = appState.treeCache[activeDb] || {};
+
+        if (tableName) {
+            // Подсказка колонок для конкретной таблицы: table_name.column
+            const cols = (tree.columns && tree.columns[tableName]) || [];
+            for (const col of cols) {
+                list.push({ value: col, type: 'COLUMN', insertText: col, priority: 100 });
+            }
+            return this.filterAndSort(list, prefix, forceAll);
+        }
+
+        // Таблицы активной БД
+        if (tree.tables) {
+            for (const tbl of tree.tables) {
+                list.push({ value: tbl, type: 'TABLE', insertText: tbl, priority: 85 });
+            }
+        }
+
+        // Представления (VIEW)
+        if (tree.views) {
+            for (const v of tree.views) {
+                list.push({ value: v, type: 'VIEW', insertText: v, priority: 80 });
+            }
+        }
+
+        // Колонки таблиц активной БД
+        if (tree.all_columns) {
+            for (const col of tree.all_columns) {
+                list.push({ value: col, type: 'COLUMN', insertText: col, priority: 75 });
+            }
+        }
+
+        // Хранимые процедуры
+        if (tree.procedures) {
+            for (const p of tree.procedures) {
+                list.push({ value: p, type: 'PROC', insertText: `${p}()`, cursorOffset: -1, priority: 70 });
+            }
+        }
+
+        // Базы данных
+        if (appState.databases) {
+            for (const db of appState.databases) {
+                list.push({ value: db, type: 'DATABASE', insertText: db, priority: 65 });
+            }
+        }
+
+        // Ключевые слова SQL
+        for (const kw of SQL_KEYWORDS) {
+            list.push({ value: kw, type: 'KEYWORD', insertText: `${kw} `, priority: 60 });
+        }
+
+        // Функции SQL
+        for (const fn of SQL_FUNCTIONS) {
+            list.push({ value: fn, type: 'FUNC', insertText: `${fn}()`, cursorOffset: -1, priority: 55 });
+        }
+
+        // Типы данных
+        for (const tp of SQL_TYPES) {
+            list.push({ value: tp, type: 'TYPE', insertText: `${tp} `, priority: 50 });
+        }
+
+        return this.filterAndSort(list, prefix, forceAll);
+    }
+
+    filterAndSort(list, prefix, forceAll = false) {
+        if (!prefix) {
+            return forceAll ? list.slice(0, 15) : [];
+        }
+
+        const p = prefix.toLowerCase();
+        const scored = [];
+
+        for (const item of list) {
+            const val = item.value.toLowerCase();
+            let score = 0;
+
+            if (val === p) {
+                score = 1000 + (item.priority || 0);
+            } else if (val.startsWith(p)) {
+                score = 500 + (item.priority || 0) - (val.length - p.length);
+            } else if (val.includes(p)) {
+                score = 100 + (item.priority || 0) - val.indexOf(p);
+            }
+
+            if (score > 0) {
+                scored.push({ item, score });
+            }
+        }
+
+        scored.sort((a, b) => b.score - a.score);
+        return scored.slice(0, 15).map(s => s.item);
+    }
+
+    queryAndShow(prefix, tableName = null, forceAll = false) {
+        const candidates = this.getCandidates(prefix, tableName, forceAll);
+        if (!candidates.length) {
+            this.hide();
+            return;
+        }
+
+        this.currentCandidates = candidates;
+        this.selectedIndex = 0;
+        this.render(prefix);
+        this.reposition();
+    }
+
+    render(prefix) {
+        this.dropdown.innerHTML = '';
+        this.currentCandidates.forEach((item, idx) => {
+            const el = document.createElement('div');
+            el.className = `sql-ac-item ${idx === this.selectedIndex ? 'selected' : ''}`;
+            el.dataset.index = idx;
+
+            const labelEl = document.createElement('span');
+            labelEl.className = 'sql-ac-label';
+            labelEl.innerHTML = this.highlightMatch(item.value, prefix);
+
+            const typeEl = document.createElement('span');
+            typeEl.className = `sql-ac-type ${item.type.toLowerCase()}`;
+            typeEl.textContent = item.type;
+
+            el.appendChild(labelEl);
+            el.appendChild(typeEl);
+
+            el.addEventListener('mouseenter', () => {
+                this.selectedIndex = idx;
+                this.updateSelection(false);
+            });
+
+            el.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // предотвращает потерю фокуса textarea
+                this.selectedIndex = idx;
+                this.applySelected();
+            });
+
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.selectedIndex = idx;
+                this.applySelected();
+            });
+
+            this.dropdown.appendChild(el);
+        });
+
+        this.dropdown.style.display = 'block';
+    }
+
+    highlightMatch(text, prefix) {
+        if (!prefix) return escapeHtml(text);
+        const idx = text.toLowerCase().indexOf(prefix.toLowerCase());
+        if (idx === -1) return escapeHtml(text);
+        const before = text.substring(0, idx);
+        const match = text.substring(idx, idx + prefix.length);
+        const after = text.substring(idx + prefix.length);
+        return `${escapeHtml(before)}<span class="sql-ac-match">${escapeHtml(match)}</span>${escapeHtml(after)}`;
+    }
+
+    updateSelection(scroll = false) {
+        const items = this.dropdown.querySelectorAll('.sql-ac-item');
+        items.forEach((it, idx) => {
+            if (idx === this.selectedIndex) {
+                it.classList.add('selected');
+                if (scroll) {
+                    it.scrollIntoView({ block: 'nearest' });
+                }
+            } else {
+                it.classList.remove('selected');
+            }
+        });
+    }
+
+    moveSelection(delta) {
+        if (!this.currentCandidates.length) return;
+        this.selectedIndex = (this.selectedIndex + delta + this.currentCandidates.length) % this.currentCandidates.length;
+        this.updateSelection(true);
+    }
+
+    applySelected() {
+        if (this.selectedIndex < 0 || this.selectedIndex >= this.currentCandidates.length) return;
+        const item = this.currentCandidates[this.selectedIndex];
+        const target = this.activeTextarea;
+        if (!target) return;
+
+        const val = target.value;
+        const start = this.wordStart;
+        const end = target.selectionStart;
+
+        const insertText = item.insertText || item.value;
+        const newVal = val.substring(0, start) + insertText + val.substring(end);
+        target.value = newVal;
+
+        const newCursorPos = start + insertText.length + (item.cursorOffset || 0);
+        target.setSelectionRange(newCursorPos, newCursorPos);
+
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        this.hide();
+        target.focus();
+    }
+
+    reposition() {
+        if (!this.activeTextarea || !this.isVisible()) return;
+        const target = this.activeTextarea;
+        const pos = this.wordStart;
+
+        const coords = this.getCaretCoordinates(target, pos);
+        let left = coords.left;
+        let top = coords.top + coords.lineHeight + 4;
+
+        // Коррекция по границам экрана
+        const width = 280;
+        const height = Math.min(230, (this.currentCandidates.length * 28) + 12);
+
+        if (left + width > window.innerWidth - 12) {
+            left = Math.max(12, window.innerWidth - width - 12);
+        }
+
+        if (top + height > window.innerHeight - 12) {
+            // Показываем над курсором
+            top = Math.max(12, coords.top - height - 4);
+        }
+
+        this.dropdown.style.left = `${Math.round(left)}px`;
+        this.dropdown.style.top = `${Math.round(top)}px`;
+    }
+
+    getCaretCoordinates(element, position) {
+        if (!this.mirror) {
+            this.mirror = document.createElement('div');
+            this.mirror.id = 'textarea-caret-mirror';
+            document.body.appendChild(this.mirror);
+        }
+
+        const style = window.getComputedStyle(element);
+        const mirror = this.mirror;
+
+        mirror.style.position = 'fixed';
+        mirror.style.top = '-9999px';
+        mirror.style.left = '-9999px';
+        mirror.style.visibility = 'hidden';
+        mirror.style.whiteSpace = 'pre-wrap';
+        mirror.style.wordWrap = 'break-word';
+        mirror.style.boxSizing = style.boxSizing;
+        mirror.style.width = style.width;
+        mirror.style.fontFamily = style.fontFamily;
+        mirror.style.fontSize = style.fontSize;
+        mirror.style.fontWeight = style.fontWeight;
+        mirror.style.lineHeight = style.lineHeight;
+        mirror.style.letterSpacing = style.letterSpacing;
+        mirror.style.paddingTop = style.paddingTop;
+        mirror.style.paddingRight = style.paddingRight;
+        mirror.style.paddingBottom = style.paddingBottom;
+        mirror.style.paddingLeft = style.paddingLeft;
+        mirror.style.borderTopWidth = style.borderTopWidth;
+        mirror.style.borderRightWidth = style.borderRightWidth;
+        mirror.style.borderBottomWidth = style.borderBottomWidth;
+        mirror.style.borderLeftWidth = style.borderLeftWidth;
+        mirror.style.tabSize = style.tabSize || '4';
+
+        mirror.textContent = element.value.substring(0, position);
+        const span = document.createElement('span');
+        span.textContent = element.value.substring(position) || '.';
+        mirror.appendChild(span);
+
+        const rect = element.getBoundingClientRect();
+        const left = rect.left + span.offsetLeft - element.scrollLeft;
+        const top = rect.top + span.offsetTop - element.scrollTop;
+        const lineHeight = parseInt(style.lineHeight, 10) || 19;
+
+        return { left, top, lineHeight };
+    }
+}
+
+let sqlAutocomplete = null;
+
+function initSqlAutocomplete() {
+    sqlAutocomplete = new SqlAutocomplete();
+    window.sqlAutocomplete = sqlAutocomplete;
+
+    const textareas = [
+        document.getElementById('raw-sql-input'),
+        document.getElementById('proc-body'),
+        document.getElementById('trg-statement'),
+        document.getElementById('view-query')
+    ];
+
+    textareas.forEach(t => {
+        if (t) sqlAutocomplete.attach(t);
     });
 }
 
