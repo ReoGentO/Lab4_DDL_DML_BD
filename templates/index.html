@@ -358,14 +358,14 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group col-half">
-                                <label for="trg-timing">Момент срабатывания (TIMING)</label>
+                                <label for="trg-timing">Момент срабатывания</label>
                                 <select id="trg-timing">
-                                    <option value="BEFORE">BEFORE (до события)</option>
-                                    <option value="AFTER">AFTER (после события)</option>
+                                    <option value="BEFORE">BEFORE</option>
+                                    <option value="AFTER">AFTER</option>
                                 </select>
                             </div>
                             <div class="form-group col-half">
-                                <label for="trg-event">Событие (EVENT)</label>
+                                <label for="trg-event">Событие</label>
                                 <select id="trg-event">
                                     <option value="INSERT">INSERT</option>
                                     <option value="UPDATE">UPDATE</option>
@@ -374,7 +374,7 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="trg-statement">Тело триггера (STATEMENT / BEGIN...END) <span class="editor-kbd-hint">Tab: отступ • Shift+Tab: возврат</span></label>
+                            <label for="trg-statement">Тело триггера</label>
                             <textarea id="trg-statement" rows="4" placeholder="SET NEW.email = LOWER(NEW.email)" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Создать триггер</button>
@@ -421,11 +421,11 @@
                             <input type="text" id="proc-name" placeholder="например: GetClientsByAge" required autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="proc-params">Параметры (например: IN min_age INT)</label>
+                            <label for="proc-params">Параметры</label>
                             <input type="text" id="proc-params" placeholder="IN min_age INT" autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="proc-body">Тело процедуры (BEGIN ... END) <span class="editor-kbd-hint">Tab: отступ • Shift+Tab: возврат</span></label>
+                            <label for="proc-body">Тело процедуры (BEGIN ... END)</label>
                             <textarea id="proc-body" rows="5" placeholder="BEGIN&#10;    SELECT * FROM clients WHERE age >= min_age;&#10;END" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Создать процедуру</button>
@@ -440,7 +440,7 @@
                             <label for="call-proc-args">Аргументы через запятую (если есть)</label>
                             <input type="text" id="call-proc-args" placeholder="например: 18">
                         </div>
-                        <button type="submit" class="btn btn-primary">Вызвать процедуру (CALL)</button>
+                        <button type="submit" class="btn btn-primary">Вызвать процедуру</button>
                     </form>
 
                     <form id="form-drop-proc" class="card-form">
@@ -480,7 +480,7 @@
                             <input type="text" id="view-name" placeholder="например: adult_clients" required autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="view-query">Запрос SELECT <span class="editor-kbd-hint">Tab: отступ • Shift+Tab: возврат</span></label>
+                            <label for="view-query">Запрос SELECT</label>
                             <textarea id="view-query" rows="3" placeholder="SELECT id, first_name, email FROM clients WHERE age >= 18" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Создать представление</button>
@@ -565,10 +565,9 @@
                     <form id="form-raw-sql" class="card-form active">
                         <div class="form-group">
                             <div class="raw-sql-header">
-                                <label for="raw-sql-input">Произвольный SQL-запрос <span class="editor-kbd-hint">Tab/Enter: подсказка • Ctrl+Space: автодополнение • Ctrl+Enter: запуск</span></label>
-                                <span class="raw-sql-hint" id="raw-sql-target-hint">База: Воейков</span>
+                                <label for="raw-sql-input">Произвольный SQL-запрос</label>
                             </div>
-                            <textarea id="raw-sql-input" rows="5" placeholder="SELECT * FROM clients;&#10;-- или любые другие команды DDL/DML"></textarea>
+                            <textarea id="raw-sql-input" rows="5" placeholder="SELECT * FROM clients;"></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Выполнить запрос</button>
                     </form>
